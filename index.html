@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+
+<script>
+  // 🌟 核心資料載入：確保新增了 LINE Pay 的讀取邏輯
+  window.allVarieties = <?!= JSON.stringify(設定['品種'] || []) ?>;
+  window.paymentConfig = <?!= JSON.stringify(設定['匯款'] || {}) ?>;
+  
+  window.APP_CONFIG = {
+    mainTitle: <?!= JSON.stringify(設定['首頁']['網頁大標題'] || "波波酪梨") ?>,
+    bankName: <?!= JSON.stringify(設定['匯款']['匯款銀行'] || "") ?>,
+    bankAcc: <?!= JSON.stringify(設定['匯款']['匯款帳號'] || "") ?>,
+    bankUser: <?!= JSON.stringify(設定['匯款']['戶名'] || "") ?>,
+    
+    // 🔗 這裡要對應試算表新增加的參數名稱
+    linePayMsg: <?!= JSON.stringify(設定['匯款']['LINE_PAY公告'] || "掃描 QR Code 即可付款，完成後請截圖告知唷！") ?>,
+    linePayImgId: <?!= JSON.stringify(設定['匯款']['LINE_PAY圖片ID'] || "") ?>,
+    
+    successMsg: <?!= JSON.stringify(設定['匯款']['成功頁提醒文字'] || "") ?>,
+    stockData: <?!= JSON.stringify(設定['庫存'] || {}) ?>, 
+    orderConfig: <?!= JSON.stringify(設定['訂購'] || {}) ?>
+  };
+</script>
+
+    <div id="raw-data-store" style="display:none;">
+      <?!= JSON.stringify(設定['訂購'] || {}) ?>
+    </div>
+
+    <div class="main-wrapper" style="width: 95%; max-width: 800px; margin: 20px auto; padding-bottom: 40px;">
+
+      <div class="banner-container" style="width: 100%; margin-bottom: 25px; overflow: hidden; border-radius: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
+        <? 
+          var bannerId = 設定['首頁']['網頁頂部橫幅網址'] || ""; 
+          var bannerUrl = bannerId ? "https://drive.google.com/thumbnail?authuser=0&sz=w1200&id=" + bannerId : "";
+        ?>
+        <img src="<?= bannerUrl ?>" 
+             style="width: 100%; aspect-ratio: 3 / 1; object-fit: cover; display: <?= bannerId ? 'block' : 'none' ?>;" 
+             referrerpolicy="no-referrer"
+             onerror="this.parentElement.style.display='none';">
+      </div>
+
+      <div class="app-container" style="border-radius: 30px;">
+
+
+<div id="step1-announcement" class="page-content">
+  <h2 class="main-title" style="margin-top: 0;"><?= 設定['首頁']['網頁大標題'] || "波波酪梨" ?></h2>
+  <div class="sub-title">Pro-Bro Avo. | Earth to Table</div>
+  <div class="origin-slogan">| 來自南投名間 小農自產自銷．現採現送 |</div>
+  <div class="title-divider"></div> 
+  
+  <div class="info-block" style="padding: 35px 25px !important;">
+    <h3 style="
+  text-align: center !important; 
+  color: var(--avo-dark); 
+  font-weight: 900;
+  font-size: 1.8rem !important;  /* 🌟 加入這一行，數字越大字體越大 */
+  margin-bottom: 20px !important;
+  letter-spacing: 2px;
+">
+  <?= 設定['首頁']['公告區標題'] || "最新公告" ?>
+</h3>
+
+    <div class="product-divider" style="
+      width: 80%; 
+      max-width: 500px; 
+      height: 0; 
+      background: none !important; 
+      border-top: 2px dashed #555; 
+      margin: 15px auto; 
+      opacity: 0.5;
+    "></div>
+
+    <p style="
+      padding: 0 15px 15px 15px; /* 👈 左右及下方留白，不影響卡片大小 */
+      text-align: center !important; 
+      line-height: 1.8;          /* 👈 稍微加高行距，閱讀更輕鬆 */
+      letter-spacing: 1px;       /* 👈 字距稍微拉開，看起來更高級 */
+    ">
+      <?= 設定['首頁']['公告內容'] || "讀取中..." ?>
+    </p>
+  </div>
+
+  <div class="button-group">
+    <button class="btn-primary" onclick="goToStep(2)">✨ 我已同意，前往選購 👉</button>
+  </div>
+</div>
+
+<div id="step2-varieties" class="page-content" style="display:none;">
+  <h2 class="main-title" style="margin-top: 0;"><?= 設定['首頁']['品種分頁大標題'] || "我們的當季酪梨" ?></h2>
+  <div class="sub-title">Pro-Bro's Seasonal Picks!</div>
+  <div class="title-divider"></div> <div id="varieties-container">
+            <p style="text-align:center; color:var(--avo-dark);">正在準備當季品種資訊...🥑</p>
+          </div>
+          <div class="button-group">
+            <button class="btn-secondary" onclick="goToStep(1)">⬅️ 返回公告</button>
+            <button class="btn-primary" onclick="goToStep(3)">🛒 開始訂購</button>
+          </div>
+        </div>
+
+<div id="step3-order-form" class="page-content" style="display:none;">
+  <h2 class="main-title" style="margin-top: 0;"><?= 設定['首頁']['訂購分頁大標題'] || "訂購資訊" ?></h2>
+  <div class="sub-title">Harvested for You by Pro-Bro Avo.</div>
+  <div class="title-divider"></div> <div class="info-block">
+            <p><strong>🥑 1. 品種選擇</strong></p>
+            <select id="variety-select"><option value="">載入中...</option></select>
+            <div class="variety-grading-note">
+              <div>優級：1-2 個些微表皮正常瑕疵</div>
+              <div>次級：風吹果皮擦挫傷、果蠅咬傷表皮，不影響食用~</div>
+            </div>
+
+            <p style="margin-top: 20px;"><strong>📦 2. 規格選擇</strong></p>
+            <select id="weight" onchange="calculateTotal()"></select>
+            
+            <p style="margin-top: 20px;"><strong>🚚 3. 配送方式</strong></p>
+            <select id="shipping-method" onchange="calculateTotal()">
+              <option value="post">📫 中華郵政 (依斤數計算運費)</option>
+              <option value="711">🏪 7-11 超商取件 ($80)</option>
+            </select>
+            
+            <div id="total-display-container"></div>
+          </div>
+
+<div id="order-middle-card" class="info-block" style="display: none; padding: 25px 25px !important;">
+  <div style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px;">
+    
+    <div id="container-img1" class="variety-img-container" style="margin-bottom: 0;">
+      <img id="order-card-img1" src="" class="variety-img" onclick="showLightbox(this.src)" style="cursor: zoom-in; height: 220px; object-fit: contain; background-color: #fff;">
+    </div>
+    
+    <div id="container-img2" class="variety-img-container" style="margin-bottom: 0;">
+      <img id="order-card-img2" src="" class="variety-img" onclick="showLightbox(this.src)" style="cursor: zoom-in; height: 220px; object-fit: contain; background-color: #fff;">
+    </div>
+    
+  </div>
+  
+  <div id="order-card-text" class="variety-grading-note" style="text-align: center; display: none;"></div>
+</div>
+
+          <div class="info-block">
+            <p><strong>👤 收件人姓名</strong></p>
+            <input type="text" id="cust-name" placeholder="請輸入姓名">
+
+            <p style="margin-top: 20px;"><strong>📞 連絡電話</strong></p>
+            <input type="tel" id="cust-phone" placeholder="請輸入手機號碼" inputmode="numeric">
+
+            <p style="margin-top: 20px;"><strong id="address-label">🏠 收件地址</strong></p>
+            <input type="text" id="delivery-address" placeholder="請輸入完整收件地址" required>
+
+            <p style="margin-top: 20px;"><strong>✨ 小小許願區 (備註)</strong></p>
+            <textarea id="order-note" placeholder="如欲購買同地址、兩箱(含)以上&#10;請與我們聯繫~" style="min-height: 100px; width: 100%; box-sizing: border-box;"></textarea>
+          </div>
+
+          <div class="button-group">
+            <button class="btn-secondary" onclick="goToStep(2)">🥑 返回</button>
+            <button class="btn-primary" id="submit-btn" onclick="submitOrder()">✅ 確認訂購</button>
+          </div>
+        </div>
+
+        <div id="step4-payment-info" class="page-content" style="display: none;">
+  <h2 class="main-title" style="margin-top: 0;">✨ 訂購成功!感謝您的訂購 ✨</h2>
+  <div class="sub-title">Your Trust, Our Harvest. Thank You.</div>
+  <div class="title-divider"></div>
+
+  <div style="text-align: center; margin-bottom: 20px;">
+    <p style="color: var(--avo-dark); font-size: 1.2rem; font-weight: 600; letter-spacing: 1px;">
+      本次購買總金額為：<span id="final-amount-display" style="color: var(--avo-accent); font-size: 1.4rem;">$0</span>
+    </p>
+  </div>
+
+  <div class="info-block">
+  <div class="payment-switch-container">
+    <div id="switch-bg" class="switch-active-bg"></div>
+    <div class="switch-option active" id="opt-bank" onclick="switchPayment('bank')">銀行轉帳</div>
+    <div class="switch-option" id="opt-linepay" onclick="switchPayment('linepay')">LINE Pay</div>
+  </div>
+
+  <div id="content-bank" class="payment-content active">
+    <div class="payment-detail-card">
+      <h3 style="text-align: center !important; margin-top: 0; color: var(--avo-dark);">💰 匯款資料</h3>
+      <div style="font-size: 1.1rem; line-height: 2; color: var(--avo-dark);">
+        <p><strong>銀行：</strong><span id="bank-val"></span></p>
+        <p><strong>帳號：</strong><span id="account-val"></span></p>
+        <p><strong>戶名：</strong><span id="name-val"></span></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="content-linepay" class="payment-content">
+  <div class="payment-detail-card">
+    <h3 style="margin-top: 0; color: #00b900;">🟢 LINE Pay 付款</h3>
+    
+    <p id="lp-announcement" style="font-size: 0.95rem; color: var(--avo-dark); margin-bottom: 15px; font-weight: 600;"></p>
+    
+    <div class="variety-img-container" style="max-width: 250px; margin: 0 auto 15px auto; padding: 10px;">
+      <img id="lp-qrcode" src="" style="width: 100%; display: block; border-radius: 10px;" onclick="showLightbox(this.src)">
+    </div>
+    
+    <p style="font-size: 0.85rem; color: #888;">( 點擊圖片可放大掃描 )</p>
+  </div>
+</div>
+
+  <hr style="border: none; border-top: 1px dashed #ddd; margin: 15px 0;">
+  <p id="success-reminder-msg" class="success-warm-text"></p>
+  
+  <div class="button-group">
+    <a id="final-line-btn" href="javascript:void(0)" onclick="handleLineJump()" class="btn-primary" style="flex: 2;">
+      <?= 設定['匯款']['跳轉按鈕名稱'] || "確認匯款回報" ?>
+    </a>
+    <button type="button" onclick="goToStep(1)" class="btn-secondary" style="flex: 1;">回首頁</button>
+  </div>
+</div>
+
+</div>
+
+<div id="lightbox-overlay" onclick="this.style.display='none'" style="display: none; position: fixed; z-index: 9998; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); cursor: zoom-out; justify-content: center; align-items: center;">
+  <div style="text-align: center; width: 100%;">
+    <img id="lightbox-img" src="" style="max-width: 90%; max-height: 80vh; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.5);">
+    <div style="margin-top: 20px; color: white;">✕ 點擊畫面任意處關閉</div>
+  </div>
+</div>
+
+<div id="custom-alert-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center; backdrop-filter: blur(3px);">
+  <div class="info-block" style="width:85%; max-width:320px; text-align:center; padding:30px !important; border: 2px solid var(--avo-green) !important;">
+    <p id="alert-message" style="margin-bottom:25px !important; font-weight:600; color: var(--avo-dark); line-height: 1.6;"></p>
+    <button class="btn-primary" onclick="closeAlert()" style="width:100%; padding:10px !important; border-radius: 50px;">確定</button>
+  </div>
+</div>
+
+    <script src="script.js"></script>
+
+
+  </body>
+</html>
